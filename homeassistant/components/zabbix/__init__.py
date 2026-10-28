@@ -43,12 +43,19 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+CONF_SKIP_VERSION_CHECK = "skip_version_check"
+CONF_VALIDATE_CERTS = "validate_certs"
+CONF_API_TIMEOUT = "timeout"
+
 CONF_PUBLISH_STATES_HOST = "publish_states_host"
 CONF_PUBLISH_STRING_STATES = "publish_string_states"
 
 DEFAULT_SSL = False
 DEFAULT_PATH = "zabbix"
 DEFAULT_SENDER_PORT = 10051
+DEFAULT_SKIP_VERSION_CHECK = False
+DEFAULT_VALIDATE_CERTS = True
+DEFAULT_API_TIMEOUT = 30
 
 TIMEOUT = 5
 RETRY_DELAY = 20
@@ -72,6 +79,9 @@ CONFIG_SCHEMA = probatio.Schema(
                 probatio.Optional(
                     CONF_PUBLISH_STRING_STATES, default=False
                 ): cv.boolean,
+                probatio.Optional(CONF_SKIP_VERSION_CHECK, default=DEFAULT_SKIP_VERSION_CHECK): cv.boolean,
+                probatio.Optional(CONF_VALIDATE_CERTS, default=DEFAULT_VALIDATE_CERTS): cv.boolean,
+                probatio.Optional(CONF_API_TIMEOUT, default=DEFAULT_API_TIMEOUT): cv.integer,                
             }
         )
     },
@@ -89,13 +99,17 @@ def setup(hass: HomeAssistant, config: ConfigType) -> bool:
     username = conf.get(CONF_USERNAME)
     password = conf.get(CONF_PASSWORD)
 
+    skip_version_check = conf.get(CONF_SKIP_VERSION_CHECK)
+    validate_certs = conf.get(CONF_VALIDATE_CERTS)
+    api_timeout = conf.get(CONF_API_TIMEOUT)
+    
     publish_states_host = conf.get(CONF_PUBLISH_STATES_HOST)
     publish_string_states = conf[CONF_PUBLISH_STRING_STATES]
 
     entities_filter = convert_include_exclude_filter(conf)
 
     try:
-        zapi = ZabbixAPI(url=url, user=username, password=password)
+        zapi = ZabbixAPI(url=url, user=username, password=password, skip_version_check=skip_version_check, validate_certs=validate_certs, timeout=api_timeout)
         _LOGGER.debug("Connected to Zabbix API Version %s", zapi.api_version())
     except APIRequestError as login_exception:
         _LOGGER.error("Unable to login to the Zabbix API: %s", login_exception)
